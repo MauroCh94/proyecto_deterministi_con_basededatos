@@ -475,9 +475,18 @@ public class MenuPrincipal extends JFrame {
             }
         });
         
+        JButton btnEliminarRegistro = new JButton("Eliminar Registro");
+        btnEliminarRegistro.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                eliminarRegistroSeleccionado(tablaResultados, modeloTabla);
+            }
+        });
+        
         panelBotones.add(btnActualizar);
         panelBotones.add(btnLimpiarTabla);
         panelBotones.add(btnExportarDatos);
+        panelBotones.add(btnEliminarRegistro);
         
         panel.add(panelBotones, BorderLayout.SOUTH);
         
@@ -582,6 +591,105 @@ public class MenuPrincipal extends JFrame {
         );
         
         JOptionPane.showMessageDialog(null, detalle, "Detalle del Resultado", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    // Método para eliminar el registro seleccionado de la base de datos
+    private void eliminarRegistroSeleccionado(JTable tabla, DefaultTableModel modelo) {
+        int filaSeleccionada = tabla.getSelectedRow();
+        
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(null, 
+                "Por favor seleccione un registro de la tabla para eliminar", 
+                "Información", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Obtener datos de la fila seleccionada
+        int idIng = (Integer) modelo.getValueAt(filaSeleccionada, 0);
+        String ingeniero = (String) modelo.getValueAt(filaSeleccionada, 1);
+        int camino = (Integer) modelo.getValueAt(filaSeleccionada, 2);
+        int ganancia = (Integer) modelo.getValueAt(filaSeleccionada, 6);
+        
+        // Confirmar eliminación
+        int confirmacion = JOptionPane.showConfirmDialog(
+            null,
+            String.format(
+                "¿Está seguro de que desea eliminar este registro?\n\n" +
+                "Ingeniero: %s\n" +
+                "Camino: %d\n" +
+                "Ganancia: %d millones\n\n" +
+                "Esta acción no se puede deshacer.",
+                ingeniero, camino, ganancia
+            ),
+            "Confirmar Eliminación",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+        
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            try {
+                // Buscar el ID del resultado específico en la base de datos
+                int idResultado = buscarIdResultado(idIng, camino);
+                
+                if (idResultado == -1) {
+                    JOptionPane.showMessageDialog(null, 
+                        "No se pudo encontrar el registro en la base de datos", 
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                // Eliminar de la base de datos
+                ResultadoController resController = new ResultadoController();
+                boolean eliminado = resController.eliminarResultado(idResultado);
+                
+                if (eliminado) {
+                    // Eliminar de la tabla visual
+                    modelo.removeRow(filaSeleccionada);
+                    
+                    JOptionPane.showMessageDialog(null, 
+                        "Registro eliminado exitosamente de la base de datos",
+                        "Eliminación Completada", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                        
+                    System.out.println("Registro eliminado: ID=" + idResultado + ", Ingeniero=" + ingeniero + ", Camino=" + camino);
+                } else {
+                    JOptionPane.showMessageDialog(null, 
+                        "Error al eliminar el registro de la base de datos",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (Exception ex) {
+                System.err.println("Error al eliminar registro: " + ex.getMessage());
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, 
+                    "Error al eliminar el registro:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    // Método auxiliar para buscar el ID del resultado específico
+    private int buscarIdResultado(int idIng, int numeroCamino) {
+        String sql = "SELECT id_resultado FROM resultados WHERE id_ing = ? AND numero_camino = ?";
+        
+        try (Connection conn = db_conection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, idIng);
+            pstmt.setInt(2, numeroCamino);
+            
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id_resultado");
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error al buscar ID del resultado: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return -1; // No encontrado
     }
     
     private void mostrarPantallaPrincipal() {
