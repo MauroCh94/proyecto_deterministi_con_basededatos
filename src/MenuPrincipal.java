@@ -124,10 +124,20 @@ public class MenuPrincipal extends JFrame {
         JButton btnSolucion = new JButton("solución");
         panelCentral.add(btnSolucion, gbc);
 
+        // Botón limpiar datos
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.gridheight = 1;
+        gbc.gridwidth = 1;
+        JButton btnLimpiarDatos = new JButton("Limpiar");
+        panelCentral.add(btnLimpiarDatos, gbc);
+
         // Panel para tablas
         gbc.gridx = 1;
         gbc.gridy = 0;
-        gbc.gridheight = 3;
+        gbc.gridheight = 4; // Aumentar para acomodar el nuevo botón
         gbc.anchor = GridBagConstraints.NORTH;
 
         JPanel panelTablas = new JPanel();
@@ -344,6 +354,56 @@ public class MenuPrincipal extends JFrame {
             }
         });
         
+        // ActionListener para el botón limpiar datos
+        btnLimpiarDatos.addActionListener(e -> {
+            try {
+                // Confirmar la acción con el usuario
+                int confirmacion = JOptionPane.showConfirmDialog(
+                    null,
+                    "¿Está seguro de que desea limpiar todos los datos de la tabla?\n" +
+                    "Esta acción solo limpiará los campos de entrada, no afectará la base de datos.",
+                    "Confirmar Limpieza",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+                );
+                
+                if (confirmacion == JOptionPane.YES_OPTION) {
+                    // Limpiar el campo de nombre
+                    txtNombre.setText("");
+                    
+                    // Limpiar los datos de la primera tabla (manteniendo la estructura)
+                    DefaultTableModel modeloTabla1 = (DefaultTableModel) tabla1.getModel();
+                    
+                    // Resetear solo las columnas editables (informatell, sistecom, tecnologic)
+                    for (int fila = 0; fila < modeloTabla1.getRowCount(); fila++) {
+                        modeloTabla1.setValueAt("", fila, 1); // informatell
+                        modeloTabla1.setValueAt("", fila, 2); // sistecom  
+                        modeloTabla1.setValueAt("", fila, 3); // tecnologic
+                    }
+                    
+                    // Limpiar también la tabla de resultados (tabla2)
+                    DefaultTableModel modeloTabla2 = (DefaultTableModel) tabla2.getModel();
+                    modeloTabla2.setRowCount(0);
+                    
+                    JOptionPane.showMessageDialog(null, 
+                        "Datos limpiados correctamente.\n" +
+                        "• Campo de nombre vacío\n" +
+                        "• Tabla de datos resetada\n" +
+                        "• Tabla de resultados vacía",
+                        "Limpieza Completada", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                        
+                    System.out.println("Datos de las tablas limpiados por el usuario");
+                }
+                
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, 
+                    "Error al limpiar los datos:\n" + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        });
+        
         return panel;
     }
     
@@ -530,5 +590,10 @@ public class MenuPrincipal extends JFrame {
     
     private void mostrarFrameResultados() {
         cardLayout.show(panelContenido, "Resultados");
+    }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new MenuPrincipal().setVisible(true);
+        });
     }
 }
